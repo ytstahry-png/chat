@@ -1,0 +1,228 @@
+index.html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dahgram Chat</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#0e1621;color:#fff}
+.app{max-width:700px;height:100vh;height:100dvh;margin:0 auto;background:#17212b;display:flex;flex-direction:column;position:relative}
+.head{padding:14px 18px;background:#17212b;border-bottom:1px solid #0e1621;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:1.3rem}
+.name{font-weight:600;font-size:1rem}
+.status{font-size:.75rem;color:#4ade80}
+.status.off{color:#6c7883}
+.messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:80%;padding:8px 12px;border-radius:14px;font-size:.9rem;line-height:1.35;word-wrap:break-word;animation:msgIn .2s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.msg.in{background:#182533;align-self:flex-start;border-bottom-left-radius:4px}
+.msg.out{background:#2b5278;align-self:flex-end;border-bottom-right-radius:4px}
+.msg .sender{font-size:.7rem;color:#6db9f2;margin-bottom:3px;font-weight:600}
+.msg .time{font-size:.65rem;color:#a8c5dd;float:right;margin-left:8px;margin-top:4px}
+.input-area{padding:10px 12px;background:#17212b;border-top:1px solid #0e1621;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.inp{flex:1;background:#242f3d;border:none;outline:none;color:#fff;font-size:16px;padding:12px 16px;border-radius:22px;min-width:0}
+.inp::placeholder{color:#6c7883}
+.snd{background:#3b82f6;border:none;color:#fff;width:44px;height:44px;min-width:44px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.snd:active{transform:scale(.92)}
+.snd svg{width:22px;height:22px;fill:#fff}
+
+.login{position:absolute;inset:0;background:#17212b;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:24px;text-align:center;z-index:100}
+.login h1{font-size:1.6rem;margin-bottom:8px}
+.login p{color:#6c7883;margin-bottom:24px;font-size:.9rem;line-height:1.5}
+.login input{width:100%;max-width:320px;background:#242f3d;border:1px solid #2b3a4a;color:#fff;padding:14px 18px;border-radius:22px;font-size:16px;outline:none;margin-bottom:12px;text-align:center}
+.login input:focus{border-color:#3b82f6}
+.login button{background:linear-gradient(135deg,#3b82f6,#2563eb);border:none;color:#fff;padding:14px 40px;border-radius:22px;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(59,130,246,.4)}
+.login button:active{transform:scale(.97)}
+.login .hint{margin-top:16px;font-size:.78rem;color:#6c7883}
+
+.users-bar{padding:8px 14px;background:#1e2b3c;border-bottom:1px solid #0e1621;display:flex;gap:8px;overflow-x:auto;flex-shrink:0;min-height:40px;align-items:center}
+.users-bar::-webkit-scrollbar{height:0}
+.user-chip{background:#2b3a4a;border-radius:16px;padding:5px 12px;font-size:.78rem;display:flex;align-items:center;gap:6px;flex-shrink:0;white-space:nowrap}
+.user-chip.me{background:#3b82f6}
+.user-chip .dot{width:8px;height:8px;background:#4ade80;border-radius:50%;flex-shrink:0}
+.users-label{color:#6c7883;font-size:.75rem;flex-shrink:0;padding-right:4px}
+
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(100px);background:#242f3d;color:#fff;padding:12px 20px;border-radius:20px;font-size:.85rem;transition:transform .3s;z-index:3000;border:1px solid #2b3a4a;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+.empty-chat{flex:1;display:flex;align-items:center;justify-content:center;color:#6c7883;font-size:.9rem;text-align:center;padding:40px;flex-direction:column;gap:8px}
+.empty-chat .big{font-size:3rem}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- LOGIN -->
+<div class="login" id="login">
+<h1>💬 Dahgram</h1>
+<p>Введи своё имя чтобы начать общаться с друзьями</p>
+<input type="text" id="nameInput" placeholder="Твоё имя" maxlength="20" autocomplete="off">
+<button id="joinBtn">Войти в чат</button>
+<div class="hint">Отправь друзьям ссылку — вы сможете общаться</div>
+</div>
+
+<!-- CHAT -->
+<div class="head">
+<div class="av" id="myAvatar">👤</div>
+<div style="flex:1">
+<div class="name">Dahgram Chat</div>
+<div class="status off" id="statusText">подключение...</div>
+</div>
+</div>
+
+<div class="users-bar" id="usersBar">
+<span class="users-label">Онлайн:</span>
+</div>
+
+<div class="messages" id="messages">
+<div class="empty-chat">
+<div class="big">💬</div>
+<div>Пока сообщений нет</div>
+<div style="font-size:.8rem">Напиши первым!</div>
+</div>
+</div>
+
+<div class="input-area">
+<input type="text" class="inp" id="inp" placeholder="Написать сообщение..." autocomplete="off">
+<button class="snd" id="sendBtn">
+<svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+</button>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, set, onDisconnect, serverTimestamp, query, limitToLast }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ===== КОНФИГ =====
+const firebaseConfig = {
+  apiKey: "AIzaSyDzhiaylX24a8MopZKxaIyrRCtUelel2RI",
+  authDomain: "dahgram-515a2.firebaseapp.com",
+  databaseURL: "https://dahgram-515a2-default-rtdb.firebaseio.com",
+  projectId: "dahgram-515a2",
+  storageBucket: "dahgram-515a2.firebasestorage.app",
+  messagingSenderId: "1049471864517",
+  appId: "1:1049471864517:web:c51d884a46a3b31b0eaaac"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ===== DOM =====
+const $ = id => document.getElementById(id);
+const loginEl = $('login'), nameInput = $('nameInput'), joinBtn = $('joinBtn');
+const messagesEl = $('messages'), inp = $('inp'), sendBtn = $('sendBtn');
+const statusText = $('statusText'), usersBar = $('usersBar'), toast = $('toast');
+
+let myName = '', myId = '';
+
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function escapeHtml(t) {
+  return String(t).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+}
+
+// Запоминаем имя в localStorage
+const savedName = localStorage.getItem('dahgram_name');
+if (savedName) nameInput.value = savedName;
+
+// ===== JOIN =====
+joinBtn.addEventListener('click', join);
+nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
+
+function join() {
+  const name = nameInput.value.trim();
+  if (!name) { showToast('Введи своё имя'); return; }
+  myName = name;
+  localStorage.setItem('dahgram_name', name);
+  myId = 'u_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+
+  // Регистрируем себя онлайн
+  const userRef = ref(db, 'users/' + myId);
+  set(userRef, { name: myName, online: true, joined: serverTimestamp() });
+  onDisconnect(userRef).remove();
+
+  loginEl.style.display = 'none';
+  statusText.textContent = 'онлайн';
+  statusText.classList.remove('off');
+  showToast('Добро пожаловать, ' + myName + '!');
+
+  // Фокус на поле ввода
+  setTimeout(() => inp.focus(), 200);
+}
+
+// ===== SEND =====
+function send() {
+  const text = inp.value.trim();
+  if (!text || !myName) return;
+  push(ref(db, 'messages'), {
+    name: myName,
+    userId: myId,
+    text: text,
+    time: serverTimestamp()
+  });
+  inp.value = '';
+}
+
+sendBtn.addEventListener('click', send);
+inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); send(); } });
+
+// ===== LISTEN MESSAGES =====
+const messagesQuery = query(ref(db, 'messages'), limitToLast(300));
+onValue(messagesQuery, snapshot => {
+  const data = snapshot.val();
+  messagesEl.innerHTML = '';
+  if (!data) {
+    messagesEl.innerHTML = '<div class="empty-chat"><div class="big">💬</div><div>Пока сообщений нет</div><div style="font-size:.8rem">Напиши первым!</div></div>';
+    return;
+  }
+  const list = Object.values(data).sort((a, b) => (a.time || 0) - (b.time || 0));
+  list.forEach(m => {
+    const d = document.createElement('div');
+    const isMe = m.userId === myId;
+    d.className = 'msg ' + (isMe ? 'out' : 'in');
+    const t = m.time ? new Date(m.time).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'}) : '';
+    d.innerHTML = (isMe ? '' : '<div class="sender">' + escapeHtml(m.name || '?') + '</div>') +
+                  escapeHtml(m.text) + '<span class="time">' + t + '</span>';
+    messagesEl.appendChild(d);
+  });
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+});
+
+// ===== LISTEN USERS =====
+onValue(ref(db, 'users'), snapshot => {
+  const data = snapshot.val();
+  usersBar.innerHTML = '<span class="users-label">Онлайн:</span>';
+  if (!data) return;
+  const users = Object.entries(data).map(([id, u]) => ({ id, ...u }));
+  users.forEach(u => {
+    const chip = document.createElement('div');
+    chip.className = 'user-chip' + (u.id === myId ? ' me' : '');
+    chip.innerHTML = '<span class="dot"></span>' + escapeHtml(u.name || '?');
+    usersBar.appendChild(chip);
+  });
+});
+
+// ===== CONNECTION STATUS =====
+onValue(ref(db, '.info/connected'), snap => {
+  if (snap.val() === true) {
+    statusText.textContent = myName ? 'онлайн' : 'подключение...';
+    statusText.classList.remove('off');
+  } else {
+    statusText.textContent = 'офлайн';
+    statusText.classList.add('off');
+  }
+});
+</script>
+</body>
+</html>
